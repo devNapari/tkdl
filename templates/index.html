@@ -10,16 +10,18 @@
 <body>
 
   <div class="container">
-    <h2>TikTok Video Downloader</h2>
+    <h2>TikTok Downloader</h2>
     <form method="post" enctype="multipart/form-data" autocomplete="off" id="downloadForm">
-      <span class="label">Paste your TikTok video URL below:</span>
-      <input type="text" id="urlInput" name="url" placeholder="TikTok video URL" required>
+      <!--<span class="label">Paste your TikTok video URL below:</span>-->
+      <input type="text" id="urlInput" name="url" placeholder="Paste TikTok video URL" required>
+      <video id="preview" controls style="display:none; width:100%; height: auto; border-radius:8px; box-shadow:0 2px 12px rgba(0,0,0,0.07); margin-top:10px;"></video>
+      <br style="padding: 8px 0 8px 0;">
       <div style="display:flex; gap:10px; margin-bottom:18px;">
-        <button type="button" id="previewBtn" style="background:#fe2c55; color:#fff; border:none; border-radius:6px; padding:10px 18px; font-size:15px; font-weight:600; cursor:pointer;">Preview</button>
+        <!--<button type="button" id="previewBtn" style="background:#fe2c55; color:#fff; border:none; border-radius:6px; padding:10px 18px; font-size:15px; font-weight:600; cursor:pointer;">Preview</button>-->
         <input type="submit" value="Download" style="flex:1;">
+        
       </div>
     </form>
-    <video id="preview" controls style="display:none; width:100%; border-radius:8px; box-shadow:0 2px 12px rgba(0,0,0,0.07); margin-top:10px;"></video>
   </div>
 
   <script>

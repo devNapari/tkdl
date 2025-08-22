@@ -1,0 +1,59 @@
+
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TikTok Video Downloader</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="container">
+    <h2>TikTok Video Downloader</h2>
+    <form method="post" enctype="multipart/form-data" autocomplete="off" id="downloadForm">
+      <span class="label">Paste your TikTok video URL below:</span>
+      <input type="text" id="urlInput" name="url" placeholder="TikTok video URL" required>
+      <div style="display:flex; gap:10px; margin-bottom:18px;">
+        <button type="button" id="previewBtn" style="background:#fe2c55; color:#fff; border:none; border-radius:6px; padding:10px 18px; font-size:15px; font-weight:600; cursor:pointer;">Preview</button>
+        <input type="submit" value="Download" style="flex:1;">
+      </div>
+    </form>
+    <video id="preview" controls style="display:none; width:100%; border-radius:8px; box-shadow:0 2px 12px rgba(0,0,0,0.07); margin-top:10px;"></video>
+  </div>
+
+  <script>
+  function getTikTokVideoUrl(url) {
+    // Try to extract direct video link from TikTok URL (for preview only, not download)
+    // This is a best-effort and may not work for all videos due to TikTok restrictions
+    const match = url.match(/tiktok\.com\/(?:@\w+\/video\/|v\/|embed\/|)(\d+)/);
+    if (match && match[1]) {
+      // Use TikTok CDN for preview (not always available)
+      return `https://v16-webapp.tiktok.com/video/tos/alisg/i/${match[1]}.mp4`;
+    }
+    return null;
+  }
+
+  function showPreview(url) {
+    const videoUrl = getTikTokVideoUrl(url);
+    const preview = document.getElementById('preview');
+    if (videoUrl) {
+      preview.src = videoUrl;
+      preview.style.display = 'block';
+    } else {
+      preview.src = '';
+      preview.style.display = 'none';
+    }
+  }
+
+  document.getElementById('urlInput').addEventListener('input', function(e) {
+    showPreview(e.target.value.trim());
+  });
+
+  document.getElementById('previewBtn').addEventListener('click', function() {
+    const url = document.getElementById('urlInput').value.trim();
+    showPreview(url);
+  });
+  </script>
+</body>
+</html>

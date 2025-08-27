@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikTok Downloader</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    input[type=text] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 20px;
+      margin: 10px 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #ff2d55;
+      color: white;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #e02648;
+    }
+    .preview {
+      margin-top: 20px;
+      display: none;
+      text-align: left;
+    }
+    .preview img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+    .meta {
+      margin-top: 10px;
+    }
+    .meta h3 {
+      margin: 5px 0;
+      font-size: 18px;
+    }
+    .meta p {
+      margin: 0;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🎵 TikTok Video Downloader</h2>
+    <p>Paste a TikTok link below:</p>
+    
+    <input type="text" id="url" placeholder="https://www.tiktok.com/@user/video/...">
+    <button onclick="fetchPreview()">Preview</button>
+    
+    <div class="preview" id="preview">
+      <img id="cover" src="" alt="Preview thumbnail">
+      <div class="meta">
+        <h3 id="title"></h3>
+        <p id="author"></p>
+      </div>
+      <form id="downloadForm" method="POST" action="/" style="margin-top: 15px;">
+        <input type="hidden" name="url" id="hiddenUrl">
+        <button type="submit">⬇ Download</button>
+      </form>
+    </div>
+    
+    <p id="error" style="color:red;"></p>
+  </div>
+
+  <script>
+    async function fetchPreview() {
+      const url = document.getElementById("url").value;
+      const errorEl = document.getElementById("error");
+      const previewEl = document.getElementById("preview");
+
+      errorEl.textContent = "";
+      previewEl.style.display = "none";
+
+      if (!url) {
+        errorEl.textContent = "Please paste a TikTok URL.";
+        return;
+      }
+
+      try {
+        const resp = await fetch("/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "url=" + encodeURIComponent(url)
+        });
+        const data = await resp.json();
+
+        if (data.error) {
+          errorEl.textContent = data.error;
+          return;
+        }
+
+        document.getElementById("cover").src = data.cover;
+        document.getElementById("title").textContent = data.title || "Untitled video";
+        document.getElementById("author").textContent = "@" + (data.author || "unknown");
+        document.getElementById("hiddenUrl").value = data.url;
+
+        previewEl.style.display = "block";
+      } catch (err) {
+        errorEl.textContent = "Could not fetch preview. Please try again.";
+      }
+    }
+  </script>
+</body>
+</html>

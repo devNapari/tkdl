@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikTok Downloader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      text-align: center;
+      padding: 40px;
+    }
+
+    #container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    input[type="text"] {
+      width: 80%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    #preview {
+      margin: 20px auto;
+      display: none;
+    }
+
+    #preview video {
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Download button */
+    button {
+      background: #ff2d55;
+      color: #fff;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover:not(.loading) {
+      background: #e02649;
+    }
+
+    /* Spinner inside button */
+    button.loading {
+      position: relative;
+      color: transparent !important; /* hide text */
+      pointer-events: none;
+    }
+
+    button.loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      margin: -10px 0 0 -10px;
+      border: 3px solid #fff;
+      border-top: 3px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Preview loader */
+    #previewLoader {
+      display: none;
+      margin: 20px auto;
+      border: 4px solid #ddd;
+      border-top: 4px solid #ff2d55;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h2>TikTok Video Downloader</h2>
+
+    <input type="text" id="urlInput" placeholder="Paste TikTok URL here" />
+
+    <!-- Preview loader -->
+    <div id="previewLoader"></div>
+
+    <!-- Video preview -->
+    <div id="preview">
+      <video id="previewVideo" controls></video>
+    </div>
+
+    <!-- Download form -->
+    <form id="downloadForm" method="POST" action="/">
+      <input type="hidden" name="url" id="hiddenUrl">
+      <button type="submit" id="downloadBtn">⬇ Download</button>
+    </form>
+  </div>
+
+  <script>
+  const urlInput = document.getElementById("urlInput");
+  const preview = document.getElementById("preview");
+  const previewVideo = document.getElementById("previewVideo");
+  const previewLoader = document.getElementById("previewLoader");
+  const hiddenUrl = document.getElementById("hiddenUrl");
+  const downloadBtn = document.getElementById("downloadBtn");
+
+  let previewTimeout;
+
+  urlInput.addEventListener("input", () => {
+    clearTimeout(previewTimeout);
+    const url = urlInput.value.trim();
+
+    if (!url) {
+      preview.style.display = "none";
+      previewVideo.src = "";
+      return;
+    }
+
+    previewLoader.style.display = "block";
+    preview.style.display = "none";
+
+    // Delay before asking backend for preview
+    previewTimeout = setTimeout(() => {
+      fetch(`/preview?url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.preview_url) {
+            previewVideo.src = data.preview_url;
+            previewVideo.onloadeddata = () => {
+              previewLoader.style.display = "none";
+              preview.style.display = "block";
+            };
+          } else {
+            previewLoader.style.display = "none";
+            alert("Could not load preview");
+          }
+        })
+        .catch(() => {
+          previewLoader.style.display = "none";
+          alert("Error fetching preview");
+        });
+    }, 800);
+  });
+
+  // Download button
+  document.getElementById("downloadForm").addEventListener("submit", function() {
+    hiddenUrl.value = urlInput.value.trim();
+    downloadBtn.classList.add("loading");
+
+    // Reset spinner after 8s (fallback)
+    setTimeout(() => {
+      downloadBtn.classList.remove("loading");
+    }, 8000);
+  });
+
+  // Extra safety: reset spinner when leaving page
+  window.addEventListener("beforeunload", () => {
+    downloadBtn.classList.remove("loading");
+  });
+
+  </script>
+</body>
+</html>

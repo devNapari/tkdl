@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TikTok Downloader</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    input { width: 60%; padding: 10px; }
+    button { padding: 10px 20px; margin-top: 10px; }
+    #preview { margin-top: 20px; display: none; }
+    #preview img { width: 250px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>TikTok Downloader</h2>
+  <form method="POST" action="/" id="downloadForm">
+    <input type="text" name="url" id="urlInput" placeholder="Paste TikTok link here..." required>
+    <br>
+    <button type="submit">Download</button>
+  </form>
+
+  <div id="preview">
+    <h3 id="title"></h3>
+    <p>By: <span id="author"></span></p>
+    <img id="thumbnail" src="" alt="Video preview">
+  </div>
+
+  <script>
+    const urlInput = document.getElementById("urlInput");
+    const previewBox = document.getElementById("preview");
+    const titleEl = document.getElementById("title");
+    const authorEl = document.getElementById("author");
+    const thumbEl = document.getElementById("thumbnail");
+
+    urlInput.addEventListener("blur", async () => {
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      let formData = new FormData();
+      formData.append("url", url);
+
+      try {
+        const res = await fetch("/preview", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.error) {
+          previewBox.style.display = "none";
+          return;
+        }
+
+        titleEl.textContent = data.title || "Untitled Video";
+        authorEl.textContent = data.author || "Unknown";
+        thumbEl.src = data.cover || "";
+        previewBox.style.display = "block";
+      } catch (err) {
+        console.error("Preview fetch failed", err);
+        previewBox.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>

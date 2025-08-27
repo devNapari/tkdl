@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TikTok Downloader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .container {
+      max-width: 420px;
+      width: 100%;
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 0 12px rgba(0,0,0,0.4);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    button {
+      background: #fe2c55;
+      border: none;
+      padding: 12px 20px;
+      color: #fff;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .spinner {
+      border: 4px solid #333;
+      border-top: 4px solid #fe2c55;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0); }
+      100% { transform: rotate(360deg); }
+    }
+    .preview {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    video, img {
+      max-width: 100%;
+      border-radius: 8px;
+      display: none;
+    }
+    video {
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>TikTok Downloader</h2>
+    <input type="text" id="urlInput" placeholder="Paste TikTok URL here">
+    <button id="downloadBtn" disabled>Download</button>
+
+    <div class="preview" id="previewSection" style="display:none;">
+      <div id="previewSpinner" class="spinner"></div>
+      <img id="thumbnail" alt="Video thumbnail">
+      <video id="videoPreview" muted autoplay loop></video>
+    </div>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById("urlInput");
+    const previewSection = document.getElementById("previewSection");
+    const previewSpinner = document.getElementById("previewSpinner");
+    const videoPreview = document.getElementById("videoPreview");
+    const thumbnail = document.getElementById("thumbnail");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    async function loadPreview(url) {
+      previewSection.style.display = "flex";
+      previewSpinner.style.display = "inline-block";
+      videoPreview.style.display = "none";
+      thumbnail.style.display = "none";
+      downloadBtn.disabled = true;
+
+      try {
+        const res = await fetch("/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          if (data.thumbnail) {
+            thumbnail.src = data.thumbnail;
+            thumbnail.style.display = "block";
+          }
+          videoPreview.src = data.url;
+          videoPreview.onloadeddata = () => {
+            previewSpinner.style.display = "none";
+            thumbnail.style.display = "none";
+            videoPreview.style.display = "block";
+          };
+          downloadBtn.disabled = false;
+          downloadBtn.dataset.url = url;
+        } else {
+          alert("Could not load preview: " + data.error);
+          previewSpinner.style.display = "none";
+        }
+      } catch (e) {
+        alert("Preview error: " + e);
+        previewSpinner.style.display = "none";
+      }
+    }
+
+    urlInput.addEventListener("input", () => {
+      const url = urlInput.value.trim();
+      if (url.startsWith("http")) {
+        setTimeout(() => loadPreview(url), 800);
+      }
+    });
+
+    downloadBtn.addEventListener("click", async () => {
+      const url = downloadBtn.dataset.url;
+      if (!url) return;
+      downloadBtn.disabled = true;
+      downloadBtn.innerHTML = '<div class="spinner"></div>';
+
+      try {
+        const res = await fetch("/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+        if (!res.ok) throw new Error("Network error");
+
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = window.URL.createObjectURL(blob);
+        a.download = "tiktok.mp4";
+        a.click();
+      } catch (e) {
+        alert("Download error: " + e);
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = "Download";
+      }
+    });
+  </script>
+</body>
+</html>

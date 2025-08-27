@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TikTok Downloader</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+            background: #f7f7f7;
+        }
+        .container {
+            width: 90%;
+            max-width: 400px;   /* smaller container */
+            margin: 40px auto;  /* space at top for scrolling */
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        .preview {
+            margin-top: 20px;
+            display: none;
+        }
+        video {
+            max-width: 100%;
+            max-height: 300px; /* keeps video from taking full screen */
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+  <div class="container">
+    <h2>TikTok Downloader</h2>
+    <input type="text" id="url" placeholder="Paste TikTok link here..." />
+    <div id="preview-section" class="preview">
+      <video id="preview-video" controls width="100%"></video>
+      <br/>
+      <button id="download-btn">Download</button>
+    </div>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById("url");
+    const previewSection = document.getElementById("preview-section");
+    const previewVideo = document.getElementById("preview-video");
+    const downloadBtn = document.getElementById("download-btn");
+
+    let currentVideoId = null;
+
+    // Trigger preview a short time after user pastes/enters URL
+    let typingTimer;
+    urlInput.addEventListener("input", () => {
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(fetchPreview, 1000); // wait 1s
+    });
+
+    async function fetchPreview() {
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      // show spinner inside input temporarily
+      urlInput.disabled = true;
+      urlInput.style.backgroundImage =
+        "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 50 50%22><path fill=%22%23007bff%22 d=%22M43.935,25.145c0-10.318-8.364-18.682-18.682-18.682c-10.318,0-18.682,8.364-18.682,18.682h4.068 c0-8.07,6.544-14.614,14.614-14.614c8.07,0,14.614,6.544,14.614,14.614H43.935z%22><animateTransform attributeType=%22xml%22 attributeName=%22transform%22 type=%22rotate%22 from=%220 25 25%22 to=%22360 25 25%22 dur=%220.6s%22 repeatCount=%22indefinite%22/></svg>')";
+      urlInput.style.backgroundRepeat = "no-repeat";
+      urlInput.style.backgroundPosition = "right 10px center";
+
+      try {
+        const res = await fetch("/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        currentVideoId = data.video_id;
+        previewVideo.src = data.preview;
+        previewSection.style.display = "block";
+      } catch (err) {
+        alert("Error fetching preview");
+      } finally {
+        urlInput.disabled = false;
+        urlInput.style.backgroundImage = "none";
+      }
+    }
+
+    downloadBtn.addEventListener("click", async () => {
+      if (!currentVideoId) return;
+      downloadBtn.disabled = true;
+      const spinner = document.createElement("span");
+      spinner.classList.add("spinner");
+      downloadBtn.innerText = "";
+      downloadBtn.appendChild(spinner);
+
+      try {
+        const res = await fetch(`/download/${currentVideoId}`);
+        if (!res.ok) {
+          alert("Download failed");
+          return;
+        }
+        // Convert to blob + trigger save
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "tiktok_video.mp4";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("Error downloading file");
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.innerText = "Download";
+      }
+    });
+  </script>
+</body>
+</html>

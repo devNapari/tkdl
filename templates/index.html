@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TikTok Downloader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      display: flex; justify-content: center; align-items: flex-start;
+      min-height: 100vh;
+      background-color: var(--bg);
+      color: var(--fg);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    :root[data-theme='dark'] {
+      --bg: #121212;
+      --fg: #fff;
+      --accent: #ff0050;
+    }
+    :root[data-theme='light'] {
+      --bg: #f9f9f9;
+      --fg: #000;
+      --accent: #ff0050;
+    }
+    .container {
+      margin-top: 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 { color: var(--accent); }
+    input {
+      width: 100%; padding: 10px;
+      border: 1px solid #ccc; border-radius: 8px;
+      margin-bottom: 15px; font-size: 16px;
+    }
+    button {
+      background: var(--accent); color: white;
+      border: none; padding: 10px 20px;
+      border-radius: 8px; font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .preview { margin-top: 20px; display: none; }
+    .preview img, .preview video {
+      width: 100%; border-radius: 12px;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 24px; height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .theme-toggle {
+      position: absolute; top: 10px; right: 10px;
+      background: transparent; border: 2px solid var(--accent);
+      border-radius: 8px; padding: 5px 10px;
+      color: var(--accent); cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+  <div class="container">
+    <h1>TikTok Downloader</h1>
+    <input type="text" id="url" placeholder="Paste TikTok URL here" />
+    <div id="preview" class="preview">
+      <div id="preview-spinner" class="spinner"></div>
+      <img id="thumb" style="display:none;" />
+      <video id="video" controls playsinline style="display:none;" controlsList="nodownload nofullscreen noremoteplayback"></video>
+      <br /><br />
+      <button id="downloadBtn">Download</button>
+    </div>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById("url");
+    const previewDiv = document.getElementById("preview");
+    const previewSpinner = document.getElementById("preview-spinner");
+    const thumb = document.getElementById("thumb");
+    const video = document.getElementById("video");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      document.documentElement.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+    }
+
+    async function fetchPreview(url) {
+      previewDiv.style.display = "block";
+      previewSpinner.style.display = "inline-block";
+      thumb.style.display = "none";
+      video.style.display = "none";
+      try {
+        const res = await fetch("/preview", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({url})
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        thumb.src = data.thumb_url;
+        thumb.style.display = "block";
+        video.src = data.video_url;
+        video.style.display = "none"; // keep thumbnail instead of autoplay
+      } catch (e) {
+        alert("Could not load preview.");
+      } finally {
+        previewSpinner.style.display = "none";
+      }
+    }
+
+    urlInput.addEventListener("input", () => {
+      const url = urlInput.value.trim();
+      if (url) {
+        setTimeout(() => fetchPreview(url), 1000);
+      }
+    });
+
+    downloadBtn.addEventListener("click", async () => {
+      const url = urlInput.value.trim();
+      if (!url) return;
+      downloadBtn.disabled = true;
+      const oldText = downloadBtn.textContent;
+      downloadBtn.innerHTML = '<div class="spinner"></div>';
+      try {
+        const res = await fetch("/download", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({url})
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        const a = document.createElement("a");
+        a.href = data.download_url;
+        a.download = "";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (e) {
+        alert("Download failed.");
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = oldText;
+      }
+    });
+  </script>
+</body>
+</html>
